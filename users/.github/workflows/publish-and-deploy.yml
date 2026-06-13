@@ -1,0 +1,71 @@
+name: Publish and Deploy Image
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  COMPOSE_DIR: backend
+  COMPOSE_FILE: docker-compose.yml
+  COMPOSE_SERVICE: users
+  VPS_PORT: 8434
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set image name
+        run: echo "IMAGE=${REGISTRY}/${GITHUB_REPOSITORY,,}" >> "$GITHUB_ENV"
+
+      - name: Log in to GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login "$REGISTRY" -u "${{ github.actor }}" --password-stdin
+
+      - name: Build image
+        run: docker build -t "$IMAGE:latest" -t "$IMAGE:${GITHUB_SHA}" .
+
+      - name: Push image
+        run: |
+          docker push "$IMAGE:latest"
+          docker push "$IMAGE:${GITHUB_SHA}"
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Validate deploy secrets
+        run: |
+          test -n "${{ secrets.VPS_HOST }}" || (echo "Missing repository secret: VPS_HOST" && exit 1)
+          test -n "${{ secrets.VPS_USER }}" || (echo "Missing repository secret: VPS_USER" && exit 1)
+          test -n "${{ secrets.VPS_SSH_KEY }}" || (echo "Missing repository secret: VPS_SSH_KEY" && exit 1)
+          test -n "${{ secrets.GHCR_USERNAME }}" || (echo "Missing repository secret: GHCR_USERNAME" && exit 1)
+          test -n "${{ secrets.GHCR_TOKEN }}" || (echo "Missing repository secret: GHCR_TOKEN" && exit 1)
+
+      - name: Prepare SSH
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -p "$VPS_PORT" -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Pull image and restart service
+        run: |
+          ssh -p "$VPS_PORT" "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" "
+            set -e
+            printf '%s' '${{ secrets.GHCR_TOKEN }}' | docker login ghcr.io -u '${{ secrets.GHCR_USERNAME }}' --password-stdin
+            cd '$COMPOSE_DIR'
+            test -f '$COMPOSE_FILE'
+            docker compose -f '$COMPOSE_FILE' pull '$COMPOSE_SERVICE'
+            docker compose -f '$COMPOSE_FILE' up -d --no-deps '$COMPOSE_SERVICE'
+            docker image prune -f
+          "

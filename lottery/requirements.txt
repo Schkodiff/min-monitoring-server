@@ -1,0 +1,6 @@
+fastapi[standard]
+sqlmodel
+uvicorn
+passlib
+pyjwt
+aio-pika==9.6.2

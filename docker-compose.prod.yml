@@ -1,0 +1,134 @@
+services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+    ports:
+      - "127.0.0.1:15672:15672"
+    networks:
+      - min-monitoring
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  users:
+    image: ${USERS_IMAGE}
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8001:8000"
+    networks:
+      - min-monitoring
+    environment:
+      ENVIRONMENT: production
+      DATABASE_URL: sqlite:////data/users.sqlite3
+      SQL_ECHO: ${SQL_ECHO:-false}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      API_KEY: ${USERS_API_KEY}
+      CORS_ORIGINS: ${CORS_ORIGINS}
+      RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672/
+    volumes:
+      - users-data:/data
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  organizers:
+    image: ${ORGANIZERS_IMAGE}
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8002:8000"
+    networks:
+      - min-monitoring
+    environment:
+      ENVIRONMENT: production
+      DATABASE_URL: sqlite:////data/organizers.sqlite3
+      SQL_ECHO: ${SQL_ECHO:-false}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      API_KEY: ${ORGANIZERS_API_KEY}
+      CORS_ORIGINS: ${CORS_ORIGINS}
+      RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672/
+    volumes:
+      - organizers-data:/data
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  lottery:
+    image: ${LOTTERY_IMAGE}
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8003:8000"
+    networks:
+      - min-monitoring
+    environment:
+      ENVIRONMENT: production
+      DATABASE_URL: sqlite:////data/lottery.sqlite3
+      SQL_ECHO: ${SQL_ECHO:-false}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      API_KEY: ${LOTTERY_API_KEY}
+      CORS_ORIGINS: ${CORS_ORIGINS}
+      RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672/
+    volumes:
+      - lottery-data:/data
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  notifications:
+    image: ${NOTIFICATIONS_IMAGE}
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8004:8000"
+    networks:
+      - min-monitoring
+    environment:
+      ENVIRONMENT: production
+      DATABASE_URL: sqlite:////data/notifications.sqlite3
+      SQL_ECHO: ${SQL_ECHO:-false}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      API_KEY: ${NOTIFICATIONS_API_KEY}
+      CORS_ORIGINS: ${CORS_ORIGINS}
+      RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672/
+    volumes:
+      - notifications-data:/data
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  notifications-worker:
+    image: ${NOTIFICATIONS_IMAGE}
+    restart: unless-stopped
+    command: python run_worker.py
+    networks:
+      - min-monitoring
+    environment:
+      ENVIRONMENT: production
+      DATABASE_URL: sqlite:////data/notifications.sqlite3
+      SQL_ECHO: ${SQL_ECHO:-false}
+      RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672/
+      BOT_NOTIFICATION_URL: ${BOT_NOTIFICATION_URL}
+    volumes:
+      - notifications-data:/data
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      notifications:
+        condition: service_started
+
+volumes:
+  rabbitmq-data:
+  users-data:
+  organizers-data:
+  lottery-data:
+  notifications-data:
+
+networks:
+  min-monitoring:
+    external: true
+    name: min-monitoring
