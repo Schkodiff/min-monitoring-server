@@ -22,11 +22,12 @@ class UserRepository(BaseRepository):
         session.commit()
         session.refresh(user)
 
-    def change_role(self, session: Session, user: User, new_role: UserRole) -> None:
+    def change_role(self, session: Session, user: User, new_role: UserRole) -> User:
         user.role = new_role
         session.add(user)
         session.commit()
         session.refresh(user)
+        return user
 
     def get_by_telegram_code(self, session: Session, telegram_code: str) -> Optional[User]:
         return session.query(User).filter(User.telegram_code == telegram_code).first()

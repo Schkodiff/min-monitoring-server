@@ -146,7 +146,11 @@ class RequestService:
 
         session.add(request)
         try:
-            self.organizers.create_from_dict(session, organizer_data)
+            self.organizers.create_from_dict_with_owner(
+                session,
+                organizer_data,
+                request.user_id,
+            )
         except IntegrityError:
             session.rollback()
             raise HTTPException(

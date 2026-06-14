@@ -77,7 +77,7 @@ class TicketRepository(BaseRepository):
 
     def bulk_create(self, session: Session, ticket_bulk_create: TicketsBulkCreate) -> List[Ticket]:
         batch_size = ticket_bulk_create.number
-        new_tickets = [Ticket(lottery_id= ticket_bulk_create.lottery_id, price = ticket_bulk_create.price, serial_number = f"lottery_{ticket_bulk_create.lottery_id}_{i}") for i in range(batch_size)]
+        new_tickets = [Ticket(lottery_id= ticket_bulk_create.lottery_id, price = ticket_bulk_create.price, serial_number = i) for i in range(batch_size)]
         for i in range(0, len(new_tickets), batch_size):
             batch = new_tickets[i:i + batch_size]
             session.bulk_save_objects(batch)
@@ -93,7 +93,7 @@ class TicketRepository(BaseRepository):
             numero2 = numero1
             numero1 = temp
         batch_size = numero2 - numero1
-        new_tickets = [Ticket(lottery_id= ticket_range_create.lottery_id, price = ticket_range_create.price, serial_number = f"lottery_{ticket_range_create.lottery_id}_{i}") for i in range(numero1, numero2+1)]
+        new_tickets = [Ticket(lottery_id= ticket_range_create.lottery_id, price = ticket_range_create.price, serial_number = i) for i in range(numero1, numero2+1)]
         for i in range(0, len(new_tickets), batch_size):
             batch = new_tickets[i:i + batch_size]
             session.bulk_save_objects(batch)

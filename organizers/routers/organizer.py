@@ -28,7 +28,14 @@ def get_organizer(organizer_id: UUID, session: Session = Depends(get_session), s
 @router.post("/", response_model=SuccessAPIResponse, status_code=status.HTTP_201_CREATED)
 def create_organizer(organizer_create: OrganizerCreate, session: Session = Depends(get_session), service: OrganizerService = Depends(get_organizer_service), current_user: tuple[UUID, UserRole] = Depends(SecurityManager.decode_access_token)):
     current_user_id, current_user_role = current_user
-    return Factory.create_ok_reponse(data=service.create_organizer(session, organizer_create, current_user_role))
+    return Factory.create_ok_reponse(
+        data=service.create_organizer(
+            session,
+            organizer_create,
+            current_user_id,
+            current_user_role,
+        )
+    )
 
 
 @router.patch("/{organizer_id}", response_model=SuccessAPIResponse)

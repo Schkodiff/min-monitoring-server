@@ -20,7 +20,7 @@ class Ticket(EntityBaseModel, table=True):
     is_winner: bool = Field(default=False)
     purchase_date: Optional[datetime] = Field(default=None)
     price: int
-    serial_number: str = Field(unique=True, index=True)
+    serial_number: str = Field(index=True)
 
     lottery_id: UUID = Field(foreign_key="lottery.id")
     lottery: "Lottery" = Relationship(back_populates="tickets")

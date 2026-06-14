@@ -7,11 +7,8 @@ if TYPE_CHECKING:
 
 
 class OrgUsersLink(SQLModel, table=True):
-    #org_id: UUID = Field(default_factory=uuid4, primary_key=True) #relationship backpopulate
-    #user_id: UUID = Field(default_factory=uuid4, primary_key=True)
-
     org_id: UUID = Field(foreign_key="organizer.id", primary_key=True)
-    user_id: UUID = Field(primary_key=True)
+    user_id: UUID = Field(primary_key=True, index=True)
 
-    # Relationship back to Organizer, exposing employees on Organizer
+    # user_id belongs to the users service, so this service stores only the UUID.
     organizer: "Organizer" = Relationship(back_populates="employees")

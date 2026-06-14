@@ -66,6 +66,6 @@ jobs:
             cd '$COMPOSE_DIR'
             test -f '$COMPOSE_FILE'
             docker compose -f '$COMPOSE_FILE' pull '$COMPOSE_SERVICE'
-            docker compose -f '$COMPOSE_FILE' up -d --no-deps '$COMPOSE_SERVICE'
+            docker compose -f '$COMPOSE_FILE' up -d --remove-orphans '$COMPOSE_SERVICE'
             docker image prune -f
           "

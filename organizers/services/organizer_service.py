@@ -25,8 +25,14 @@ class OrganizerService:
             )
         return OrganizerResponse.model_validate(organizer)
 
-    def create_organizer(self, session: Session, organizer_create: OrganizerCreate, current_user_role: UserRole) -> OrganizerResponse:
-        if current_user_role != UserRole.admin or current_user_role != UserRole.mod:
+    def create_organizer(
+        self,
+        session: Session,
+        organizer_create: OrganizerCreate,
+        current_user_id: UUID,
+        current_user_role: UserRole,
+    ) -> OrganizerResponse:
+        if current_user_role not in (UserRole.admin, UserRole.mod):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="At least moderator privileges required"
@@ -59,7 +65,11 @@ class OrganizerService:
                 detail="Организатор с таким ОГРН уже существует"
             )
         
-        new_organizer = self.organizers.create(session, organizer_create)
+        new_organizer = self.organizers.create_with_owner(
+            session,
+            organizer_create,
+            current_user_id,
+        )
         return OrganizerResponse.model_validate(new_organizer)
 
     def update_organizer(self, session: Session, organizer_id: UUID, organizer_update: OrganizerUpdate) -> OrganizerResponse:

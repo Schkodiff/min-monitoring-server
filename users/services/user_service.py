@@ -74,7 +74,7 @@ class UserService:
             )
     
     def change_role(self, session: Session, user_id: UUID, user_change_role: UserChangeRole, current_user_role: UserRole) -> UserResponse:
-        if current_user_role != UserRole.admin or current_user_role != UserRole.mod:
+        if current_user_role not in (UserRole.admin, UserRole.mod):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Нельзя изменить роль без административных прав"
@@ -85,7 +85,7 @@ class UserService:
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Пользователь не найден"
             )
-        updated_user = self.users.change_role(session, user_id, user_change_role.role)
+        updated_user = self.users.change_role(session, user, user_change_role.role)
         return UserResponse.from_orm(updated_user)
 
     def get_user_by_telegram_id(self, session: Session, telegram_id: UUID) -> UserResponse:
